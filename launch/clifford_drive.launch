@@ -1,0 +1,7 @@
+<launch>
+    <node name="clifford_drive_node" pkg="clifford_drive" type="clifford_drive_node" output="screen">
+        <rosparam command="load" file="$(find clifford_drive)/config/motor_config.yaml"/>
+        <rosparam command="load" file="$(find clifford_drive)/config/command_config.yaml"/>
+    </node>
+
+</launch>

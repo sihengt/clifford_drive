@@ -1,0 +1,3 @@
+[submodule "CppMaestro"]
+	path = CppMaestro
+	url = https://github.com/sihengt/CppMaestro

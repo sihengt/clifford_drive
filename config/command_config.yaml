@@ -1,0 +1,39 @@
+# agressive
+front_steer_scale: 1750
+rear_steer_scale: -1750
+front_throttle_scale: 400
+rear_throttle_scale: 400
+
+# gentle
+#front_steer_scale: 1000
+#rear_steer_scale: -1000
+#front_throttle_scale: 200
+#rear_throttle_scale: 200
+
+# agressive v2
+#front_steer_scale: 1000
+#rear_steer_scale: -1000
+#front_throttle_scale: 450
+#rear_throttle_scale: 450
+
+# front_steer_scale should be positive
+# rear_steer_scale should be negative
+#front_steer_scale: 1750
+#rear_steer_scale: -1750
+front_steer_trim: 300
+rear_steer_trim: 0
+
+# Next few parameters take the following format: [min, max]
+front_steer_limit: [-1,1]
+rear_steer_limit: [-1,1]
+front_throttle_scale: 450
+rear_throttle_scale: 450
+#front_throttle_scale: 300
+#rear_throttle_scale: 300
+front_throttle_limit: [-1,1]
+rear_throttle_limit: [-1,1]
+front_accel_limit: [0.01,0.01] #[-0.01,0.003]
+rear_accel_limit: [0.01,0.01] #[-0.01,0.003]
+#front_accel_limit: [-0.02,0.0075]
+#rear_accel_limit: [-0.02,0.0075]
+control_timeout: 0.25

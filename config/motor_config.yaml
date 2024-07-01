@@ -1,0 +1,9 @@
+vesc_serial_port: "/dev/serial/by-id/usb-STMicroelectronics_ChibiOS_RT_Virtual_COM_Port_304-if00"
+front_vesc_id: 2
+rear_vesc_id: 52
+comm_vesc_id: 52
+gear_ratio: 48.02
+num_slots: 2
+steer_serial_port: "/dev/serial/by-id/usb-Pololu_Corporation_Pololu_Micro_Maestro_6-Servo_Controller_00322085-if00"
+front_steer_id: 1
+rear_steer_id: 0
