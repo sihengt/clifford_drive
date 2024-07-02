@@ -3,12 +3,13 @@
 
 #include "ros/ros.h"
 #include "CppMaestro/CppMaestro.hpp"
+#include "clifford_drive/CliffordDriveCommand.h"
 #include <algorithm>
 
 class CliffordDriveNode
 {
 public:
-    CliffordDriveNode(const std::string& port);
+    CliffordDriveNode();
     
 private:
     ros::NodeHandle nh_;
@@ -20,13 +21,20 @@ private:
     // Subscribers
     ros::Subscriber command_sub_;
 
+    // Timers
+    ros::Timer command_timer_;
+    ros::Timer reconnect_timer_;
+
     // Callbacks    
-    void commandCallback(const CliffordDriveCommand::ConstPtr& msg);
-    void sendCommand();
+    void commandCallback(const clifford_drive::CliffordDriveCommand::ConstPtr& msg);
+    
+    void reconnectCallback(const ros::TimerEvent& event);
+    void sendCommand(const ros::TimerEvent& event);
 
     // Functions
     bool getParameters();
     bool connectSteer();
+    bool connectVESC();
 
     template <typename T>
     T clip(const T& data, const T& lower_limit, const T& upper_limit) 
@@ -54,8 +62,8 @@ private:
     std::string steer_serial_port_;
     int front_steer_id_;
     int rear_steer_id_;
-    float front_steer_scale_;
-    float rear_steer_scale_;
+    int front_steer_scale_;
+    int rear_steer_scale_;
     float front_steer_trim_;
     float rear_steer_trim_;
     std::vector<float> front_steer_limit_;
@@ -72,8 +80,12 @@ private:
     float cmd_rear_throttle_;
     float cmd_front_steer_;
     float cmd_rear_steer_;
+
+    // Timers
+    float command_period_;
+    float reconnect_period_;
+
     ros::Time last_cmd_time_;
-    
 };
 
 #endif // CLIFFORD_DRIVE_NODE_H_

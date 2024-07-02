@@ -36,4 +36,5 @@ front_accel_limit: [0.01,0.01] #[-0.01,0.003]
 rear_accel_limit: [0.01,0.01] #[-0.01,0.003]
 #front_accel_limit: [-0.02,0.0075]
 #rear_accel_limit: [-0.02,0.0075]
-control_timeout: 0.25
+command_period: 0.01
+reconnect_period: 0.5

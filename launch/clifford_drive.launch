@@ -1,7 +1,19 @@
 <launch>
+	<arg name="use_joy" default="true"/>
+
     <node name="clifford_drive_node" pkg="clifford_drive" type="clifford_drive_node" output="screen">
         <rosparam command="load" file="$(find clifford_drive)/config/motor_config.yaml"/>
         <rosparam command="load" file="$(find clifford_drive)/config/command_config.yaml"/>
+    </node>
+
+	<!-- launch joy -->
+	<node respawn="true" pkg="joy" type="joy_node" name="joy_input" if="$(arg use_joy)">
+		<param name="dev" type="string" value="/dev/input/js0" />
+		<param name="deadzone" value="0.05" />
+		<param name="autorepeat_rate" value="20" />
+	</node>
+    <node name="joy2command" pkg="clifford_drive" type="joy2command.py" output="screen" if="$(arg use_joy)">
+        <param name="joystick_config" value="$(find clifford_drive)/config/f710.yaml"/>
     </node>
 
 </launch>
