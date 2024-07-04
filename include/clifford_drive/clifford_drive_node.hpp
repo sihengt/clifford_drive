@@ -4,6 +4,8 @@
 #include "ros/ros.h"
 #include "CppMaestro/CppMaestro.hpp"
 #include "clifford_drive/CliffordDriveCommand.h"
+#include "vesc_msgs/VescCommand.h"
+#include <cmath>
 #include <algorithm>
 
 class CliffordDriveNode
@@ -16,10 +18,11 @@ private:
 
     // Hardware connections
     std::unique_ptr<CppMaestro> servo_driver_;
-    // TODO: VESC motor_driver_;
+    // TODO: VESC motor_driver_; 
 
     // Subscribers
     ros::Subscriber command_sub_;
+    ros::Publisher  vesc_pub_;
 
     // Timers
     ros::Timer command_timer_;
@@ -41,6 +44,8 @@ private:
     { 
         return std::max(lower_limit, std::min(upper_limit, data));
     }
+
+    float limitAcceleration(float accel_cmd, float prev_cmd, const std::vector<float>& limit_cmd);
 
     // Center position of Maestro server
     static const int MAESTRO_CENTER_POSITION_ = 6000;
@@ -74,8 +79,8 @@ private:
     bool steer_connected_ = false;
 
     // Latest commands
-    float prev_front_throttle_;
-    float prev_rear_throttle_;
+    float prev_front_throttle_ = 0.0f;
+    float prev_rear_throttle_ =0.0f;
     float cmd_front_throttle_;
     float cmd_rear_throttle_;
     float cmd_front_steer_;

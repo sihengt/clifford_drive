@@ -1,4 +1,4 @@
-#include "clifford_drive/clifford_drive_node.h"
+#include "clifford_drive/clifford_drive_node.hpp"
 
 CliffordDriveNode::CliffordDriveNode()
     : nh_("~")
@@ -9,9 +9,16 @@ CliffordDriveNode::CliffordDriveNode()
         ros::shutdown();
     };
 
+    // TODO: clean this up
+    if (front_vesc_id_ == comm_vesc_id_)
+        front_vesc_id_ = 0;
+    if (rear_vesc_id_ == comm_vesc_id_)
+        rear_vesc_id_ = 0;
+
     //connectDrive();
     steer_connected_ = connectSteer();    
     command_sub_ = nh_.subscribe("/motor_controller/command", 1, &CliffordDriveNode::commandCallback, this);
+    vesc_pub_ = nh_.advertise<vesc_msgs::VescCommand>("/commands/motor/speed", 1000);
     command_timer_ = nh_.createTimer(ros::Duration(command_period_), &CliffordDriveNode::sendCommand, this);
     reconnect_timer_ = nh_.createTimer(ros::Duration(reconnect_period_), &CliffordDriveNode::reconnectCallback, this);
 }
@@ -83,6 +90,42 @@ bool CliffordDriveNode::connectSteer()
 bool CliffordDriveNode::connectVESC()
 {}
 
+float CliffordDriveNode::limitAcceleration(float accel_cmd, float prev_cmd, const std::vector<float>& limit_cmd)
+{
+    // ROS_INFO("limit from %f to %f", limit_cmd[0], limit_cmd[1]);
+    ROS_INFO("current_cmd=%f \t previous_cmd=%f", accel_cmd, prev_cmd);
+
+    float maxChange;
+    float change = accel_cmd - prev_cmd;
+    
+    if (std::abs(accel_cmd - prev_cmd) < 1e-6)
+    {
+        ROS_INFO("Command change within tolerance, returning previous command: %f", prev_cmd);
+        return prev_cmd;
+    }
+    if (std::signbit(accel_cmd) != std::signbit(prev_cmd)) // Direction change
+    {
+        maxChange = std::min(limit_cmd[1], std::abs(prev_cmd) + (1 - std::abs(prev_cmd) / limit_cmd[1]) * limit_cmd[0]);
+    }
+    else if (std::abs(accel_cmd) > std::abs(prev_cmd)) // Accelerating
+    {
+        maxChange = limit_cmd[0];
+    }
+    else // Decelerating or maintaining speed
+    {
+        maxChange = limit_cmd[1];
+    }
+
+    // Correct handling of sign and limit the change to the maximum allowed
+    float limited_change = std::copysign(std::min(std::abs(change), maxChange), change);
+
+    // Apply the limited change to the previous command
+    accel_cmd = prev_cmd + limited_change;
+    
+    ROS_INFO("accel calculated: %f", accel_cmd);
+    return accel_cmd;
+}
+
 void CliffordDriveNode::commandCallback(const clifford_drive::CliffordDriveCommand::ConstPtr& msg)
 {
     // ROS_INFO("[commandCallback] Command received.");
@@ -133,6 +176,43 @@ void CliffordDriveNode::sendCommand(const ros::TimerEvent& event)
 
     servo_driver_->setTarget(front_steer_id_, static_cast<int>(MAESTRO_CENTER_POSITION_ + front_steer_scale_ * cmd_front_steer_ + front_steer_trim_));
     servo_driver_->setTarget(rear_steer_id_, static_cast<int>(MAESTRO_CENTER_POSITION_ + rear_steer_scale_ * cmd_rear_steer_ + rear_steer_trim_));
+
+    // ROS_INFO("Front");
+    prev_front_throttle_ = limitAcceleration(cmd_front_throttle_, prev_front_throttle_, front_steer_limit_);
+    // ROS_INFO("Rear");
+    prev_rear_throttle_  = limitAcceleration(cmd_rear_throttle_, prev_rear_throttle_, rear_steer_limit_);
+    
+    vesc_msgs::VescCommand msg_front;
+    vesc_msgs::VescCommand msg_rear;
+    
+    msg_front.command = prev_front_throttle_ * front_throttle_scale_ * e_ratio_;
+    if (msg_front.command > 8000.0)
+    {
+        ROS_WARN("Funky command: %f", msg_front.command);
+        msg_front.command = 8000.0;
+    } 
+    if (msg_front.command < -8000.0)
+    {
+        ROS_WARN("Funky command: %f", msg_front.command);
+        msg_front.command = -8000.0;
+    } 
+    msg_front.can_id = front_vesc_id_;
+    vesc_pub_.publish(msg_front);
+
+    // msg_rear.command = prev_rear_throttle_ * rear_throttle_scale_ * e_ratio_;
+    // if (msg_rear.command > 8000.0)
+    // {
+    //     ROS_WARN("Funky command: %f", msg_rear.command);
+    //     msg_rear.command = 8000.0;
+    // } 
+    // if (msg_rear.command < -8000.0)
+    // {
+    //     ROS_WARN("Funky command: %f", msg_rear.command);
+    //     msg_rear.command = -8000.0;
+    // } 
+    
+    // msg_rear.can_id = rear_vesc_id_;
+    // vesc_pub_.publish(msg_rear);
 }
 
 int main(int argc, char **argv)

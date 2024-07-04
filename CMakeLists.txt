@@ -9,6 +9,7 @@ find_package(catkin REQUIRED COMPONENTS
     std_msgs
     message_generation
     rospy
+    vesc_msgs
 )
 
 add_subdirectory(CppMaestro)
@@ -23,11 +24,12 @@ add_message_files(
 generate_messages(
   DEPENDENCIES
   std_msgs
+  vesc_msgs
 )
 
 catkin_package(
     INCLUDE_DIRS include
-    CATKIN_DEPENDS roscpp std_msgs message_runtime rospy
+    CATKIN_DEPENDS roscpp std_msgs message_runtime rospy vesc_msgs
 )
 
 ###########

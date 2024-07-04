@@ -1,5 +1,6 @@
 <launch>
 	<arg name="use_joy" default="true"/>
+    <arg name="vesc_serial_port" default="/dev/serial/by-id/usb-STMicroelectronics_ChibiOS_RT_Virtual_COM_Port_304-if00"/> <!-- Define the default port -->
 
     <node name="clifford_drive_node" pkg="clifford_drive" type="clifford_drive_node" output="screen">
         <rosparam command="load" file="$(find clifford_drive)/config/motor_config.yaml"/>
@@ -16,4 +17,8 @@
         <param name="joystick_config" value="$(find clifford_drive)/config/f710.yaml"/>
     </node>
 
+    <!-- launch vesc -->
+    <node pkg="vesc_driver" type="vesc_driver_node" name="vesc_driver_node">
+        <param name="port" value="$(arg vesc_serial_port)" />
+    </node>
 </launch>
