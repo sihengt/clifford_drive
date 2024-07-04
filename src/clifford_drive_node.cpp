@@ -1,7 +1,7 @@
 #include "clifford_drive/clifford_drive_node.hpp"
 
 CliffordDriveNode::CliffordDriveNode()
-    : nh_("~")
+    : nh_("~"), front_throttle_controller_(), rear_throttle_controller_()
 {
     if(!getParameters())
     {
@@ -21,6 +21,8 @@ CliffordDriveNode::CliffordDriveNode()
     vesc_pub_ = nh_.advertise<vesc_msgs::VescCommand>("/commands/motor/speed", 1000);
     command_timer_ = nh_.createTimer(ros::Duration(command_period_), &CliffordDriveNode::sendCommand, this);
     reconnect_timer_ = nh_.createTimer(ros::Duration(reconnect_period_), &CliffordDriveNode::reconnectCallback, this);
+    front_throttle_controller_.setParams(800.0f, front_throttle_scale_);
+    rear_throttle_controller_.setParams(800.0f, rear_throttle_scale_);   
 }
 
 bool CliffordDriveNode::getParameters()
@@ -177,42 +179,20 @@ void CliffordDriveNode::sendCommand(const ros::TimerEvent& event)
     servo_driver_->setTarget(front_steer_id_, static_cast<int>(MAESTRO_CENTER_POSITION_ + front_steer_scale_ * cmd_front_steer_ + front_steer_trim_));
     servo_driver_->setTarget(rear_steer_id_, static_cast<int>(MAESTRO_CENTER_POSITION_ + rear_steer_scale_ * cmd_rear_steer_ + rear_steer_trim_));
 
-    // ROS_INFO("Front");
-    prev_front_throttle_ = limitAcceleration(cmd_front_throttle_, prev_front_throttle_, front_steer_limit_);
-    // ROS_INFO("Rear");
-    prev_rear_throttle_  = limitAcceleration(cmd_rear_throttle_, prev_rear_throttle_, rear_steer_limit_);
+    prev_front_throttle_ = front_throttle_controller_.setThrottle(cmd_front_throttle_);
+    prev_rear_throttle_ = rear_throttle_controller_.setThrottle(cmd_rear_throttle_);
     
     vesc_msgs::VescCommand msg_front;
     vesc_msgs::VescCommand msg_rear;
-    
-    msg_front.command = prev_front_throttle_ * front_throttle_scale_ * e_ratio_;
-    if (msg_front.command > 8000.0)
-    {
-        ROS_WARN("Funky command: %f", msg_front.command);
-        msg_front.command = 8000.0;
-    } 
-    if (msg_front.command < -8000.0)
-    {
-        ROS_WARN("Funky command: %f", msg_front.command);
-        msg_front.command = -8000.0;
-    } 
-    msg_front.can_id = front_vesc_id_;
-    vesc_pub_.publish(msg_front);
 
-    // msg_rear.command = prev_rear_throttle_ * rear_throttle_scale_ * e_ratio_;
-    // if (msg_rear.command > 8000.0)
-    // {
-    //     ROS_WARN("Funky command: %f", msg_rear.command);
-    //     msg_rear.command = 8000.0;
-    // } 
-    // if (msg_rear.command < -8000.0)
-    // {
-    //     ROS_WARN("Funky command: %f", msg_rear.command);
-    //     msg_rear.command = -8000.0;
-    // } 
-    
-    // msg_rear.can_id = rear_vesc_id_;
-    // vesc_pub_.publish(msg_rear);
+    ROS_INFO("Front throttle: %f \tRear throttle: %f", prev_front_throttle_, prev_rear_throttle_);
+    msg_front.can_id = front_vesc_id_;
+    msg_front.command = prev_front_throttle_;
+    vesc_pub_.publish(msg_front);    
+
+    msg_rear.can_id = rear_vesc_id_;
+    msg_rear.command = prev_rear_throttle_;
+    vesc_pub_.publish(msg_rear);
 }
 
 int main(int argc, char **argv)

@@ -4,7 +4,9 @@
 #include "ros/ros.h"
 #include "CppMaestro/CppMaestro.hpp"
 #include "clifford_drive/CliffordDriveCommand.h"
+#include "clifford_drive/throttle_controller.hpp"
 #include "vesc_msgs/VescCommand.h"
+
 #include <cmath>
 #include <algorithm>
 
@@ -50,6 +52,10 @@ private:
     // Center position of Maestro server
     static const int MAESTRO_CENTER_POSITION_ = 6000;
 
+    ThrottleController front_throttle_controller_;
+    ThrottleController rear_throttle_controller_;
+    
+
     // Motor variables
     std::string vesc_serial_port_;
     int front_vesc_id_;
@@ -80,11 +86,11 @@ private:
 
     // Latest commands
     float prev_front_throttle_ = 0.0f;
-    float prev_rear_throttle_ =0.0f;
-    float cmd_front_throttle_;
-    float cmd_rear_throttle_;
-    float cmd_front_steer_;
-    float cmd_rear_steer_;
+    float prev_rear_throttle_ = 0.0f;
+    float cmd_front_throttle_ = 0.0f;
+    float cmd_rear_throttle_ = 0.0f;
+    float cmd_front_steer_ = 0.0f;;
+    float cmd_rear_steer_ = 0.0f;
 
     // Timers
     float command_period_;

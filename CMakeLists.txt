@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0.2)
 project(clifford_drive)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-# add_compile_options(-std=c++11)
+add_compile_options(-std=c++17)
 
 find_package(catkin REQUIRED COMPONENTS
     roscpp
@@ -47,7 +47,7 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(${PROJECT_NAME}_node src/clifford_drive_node.cpp)
+add_executable(${PROJECT_NAME}_node src/clifford_drive_node.cpp src/throttle_controller.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above

@@ -26,8 +26,8 @@ rear_steer_trim: 0
 # Next few parameters take the following format: [min, max]
 front_steer_limit: [-1,1]
 rear_steer_limit: [-1,1]
-front_throttle_scale: 100
-rear_throttle_scale: 100
+front_throttle_scale: 20000
+rear_throttle_scale: 20000
 #front_throttle_scale: 300
 #rear_throttle_scale: 300
 front_throttle_limit: [-1,1]
@@ -36,5 +36,5 @@ front_accel_limit: [0.01,0.01] #[-0.01,0.003]
 rear_accel_limit: [0.01,0.01] #[-0.01,0.003]
 #front_accel_limit: [-0.02,0.0075]
 #rear_accel_limit: [-0.02,0.0075]
-command_period: 0.05
+command_period: 0.0005
 reconnect_period: 0.5
