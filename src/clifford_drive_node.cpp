@@ -10,10 +10,10 @@ CliffordDriveNode::CliffordDriveNode()
     };
 
     // TODO: clean this up
-    if (front_vesc_id_ == comm_vesc_id_)
-        front_vesc_id_ = 0;
-    if (rear_vesc_id_ == comm_vesc_id_)
-        rear_vesc_id_ = 0;
+    if (motor_params_.front_vesc_id_ == motor_params_.comm_vesc_id_)
+        motor_params_.front_vesc_id_ = 0;
+    if (motor_params_.rear_vesc_id_ == motor_params_.comm_vesc_id_)
+        motor_params_.rear_vesc_id_ = 0;
 
     //connectDrive();
     steer_connected_ = connectSteer();    
@@ -21,8 +21,8 @@ CliffordDriveNode::CliffordDriveNode()
     vesc_pub_ = nh_.advertise<vesc_msgs::VescCommand>("/commands/motor/speed", 1000);
     command_timer_ = nh_.createTimer(ros::Duration(command_period_), &CliffordDriveNode::sendCommand, this);
     reconnect_timer_ = nh_.createTimer(ros::Duration(reconnect_period_), &CliffordDriveNode::reconnectCallback, this);
-    front_throttle_controller_.setParams(800.0f, front_throttle_scale_);
-    rear_throttle_controller_.setParams(800.0f, rear_throttle_scale_);   
+    front_throttle_controller_.setParams(800.0f, motor_params_.front_throttle_scale_);
+    rear_throttle_controller_.setParams(800.0f, motor_params_.rear_throttle_scale_);   
 }
 
 bool CliffordDriveNode::getParameters()
@@ -40,33 +40,31 @@ bool CliffordDriveNode::getParameters()
         return true;
     };
     
-    float gear_ratio;
-    int num_slots;
-    success &= getParamWithLogging("gear_ratio", gear_ratio);
-    success &= getParamWithLogging("num_slots", num_slots);
-    e_ratio_ = gear_ratio * num_slots;
+    success &= getParamWithLogging("gear_ratio", motor_params_.gear_ratio_);
+    success &= getParamWithLogging("num_slots", motor_params_.num_slots_);
+    motor_params_.e_ratio_ = motor_params_.gear_ratio_ * motor_params_.num_slots_;
     
-    success &= getParamWithLogging("comm_vesc_id", comm_vesc_id_);
-    success &= getParamWithLogging("vesc_serial_port", vesc_serial_port_);
-    success &= getParamWithLogging("front_vesc_id", front_vesc_id_);
-    success &= getParamWithLogging("rear_vesc_id", rear_vesc_id_);
-    success &= getParamWithLogging("front_throttle_limit", front_throttle_limit_);
-    success &= getParamWithLogging("rear_throttle_limit", rear_throttle_limit_);
-    success &= getParamWithLogging("front_throttle_scale", front_throttle_scale_);
-    success &= getParamWithLogging("rear_throttle_scale", rear_throttle_scale_);
-    success &= getParamWithLogging("front_accel_limit", front_accel_limit_);
-    success &= getParamWithLogging("rear_accel_limit", rear_accel_limit_);
+    success &= getParamWithLogging("comm_vesc_id",          motor_params_.comm_vesc_id_);
+    success &= getParamWithLogging("vesc_serial_port",      motor_params_.vesc_serial_port_);
+    success &= getParamWithLogging("front_vesc_id",         motor_params_.front_vesc_id_);
+    success &= getParamWithLogging("rear_vesc_id",          motor_params_.rear_vesc_id_);
+    success &= getParamWithLogging("front_throttle_limit",  motor_params_.front_throttle_limit_);
+    success &= getParamWithLogging("rear_throttle_limit",   motor_params_.rear_throttle_limit_);
+    success &= getParamWithLogging("front_throttle_scale",  motor_params_.front_throttle_scale_);
+    success &= getParamWithLogging("rear_throttle_scale",   motor_params_.rear_throttle_scale_);
+    success &= getParamWithLogging("front_accel_limit",     motor_params_.front_accel_limit_);
+    success &= getParamWithLogging("rear_accel_limit",      motor_params_.rear_accel_limit_);
     
     // Steering
-    success &= getParamWithLogging("steer_serial_port", steer_serial_port_);
-    success &= getParamWithLogging("front_steer_id", front_steer_id_);
-    success &= getParamWithLogging("front_steer_scale", front_steer_scale_);
-    success &= getParamWithLogging("front_steer_trim", front_steer_trim_);
-    success &= getParamWithLogging("front_steer_limit", front_steer_limit_);
-    success &= getParamWithLogging("rear_steer_id", rear_steer_id_);
-    success &= getParamWithLogging("rear_steer_scale", rear_steer_scale_);
-    success &= getParamWithLogging("rear_steer_trim", rear_steer_trim_);
-    success &= getParamWithLogging("rear_steer_limit", rear_steer_limit_);
+    success &= getParamWithLogging("steer_serial_port",     servo_params_.steer_serial_port_);
+    success &= getParamWithLogging("front_steer_id",        servo_params_.front_steer_id_);
+    success &= getParamWithLogging("front_steer_scale",     servo_params_.front_steer_scale_);
+    success &= getParamWithLogging("front_steer_trim",      servo_params_.front_steer_trim_);
+    success &= getParamWithLogging("front_steer_limit",     servo_params_.front_steer_limit_);
+    success &= getParamWithLogging("rear_steer_id",         servo_params_.rear_steer_id_);
+    success &= getParamWithLogging("rear_steer_scale",      servo_params_.rear_steer_scale_);
+    success &= getParamWithLogging("rear_steer_trim",       servo_params_.rear_steer_trim_);
+    success &= getParamWithLogging("rear_steer_limit",      servo_params_.rear_steer_limit_);
 
     // ROS Timers
     success &= getParamWithLogging("command_period", command_period_);
@@ -78,19 +76,16 @@ bool CliffordDriveNode::getParameters()
 bool CliffordDriveNode::connectSteer()
 {
     ROS_INFO("Connecting steer servos");
-    servo_driver_ = std::make_unique<CppMaestro>(steer_serial_port_);
+    servo_driver_ = std::make_unique<CppMaestro>(servo_params_.steer_serial_port_);
     if (servo_driver_)
     {
-        servo_driver_->setTarget(front_steer_id_, MAESTRO_CENTER_POSITION_);
-        servo_driver_->setTarget(rear_steer_id_, MAESTRO_CENTER_POSITION_);
+        servo_driver_->setTarget(servo_params_.front_steer_id_, MAESTRO_CENTER_POSITION_);
+        servo_driver_->setTarget(servo_params_.rear_steer_id_, MAESTRO_CENTER_POSITION_);
         return true;
     }
     ROS_WARN("Unable to connect to steer servos.");
     return false;
 }
-
-bool CliffordDriveNode::connectVESC()
-{}
 
 float CliffordDriveNode::limitAcceleration(float accel_cmd, float prev_cmd, const std::vector<float>& limit_cmd)
 {
@@ -131,19 +126,27 @@ float CliffordDriveNode::limitAcceleration(float accel_cmd, float prev_cmd, cons
 void CliffordDriveNode::commandCallback(const clifford_drive::CliffordDriveCommand::ConstPtr& msg)
 {
     // ROS_INFO("[commandCallback] Command received.");
-    cmd_front_throttle_ = clip(msg->throttle, front_throttle_limit_[0], front_throttle_limit_[1]);
+    clifford_commands_.cmd_front_throttle_ = clip(msg->throttle,
+        motor_params_.front_throttle_limit_[0],
+        motor_params_.front_throttle_limit_[1]);
     if (msg->separate_throttle)
-        cmd_rear_throttle_ = clip(msg->rear_throttle, rear_throttle_limit_[0], rear_throttle_limit_[1]);
+        clifford_commands_.cmd_rear_throttle_ = clip(msg->rear_throttle,
+            motor_params_.rear_throttle_limit_[0],
+            motor_params_.rear_throttle_limit_[1]);
     else
-        cmd_rear_throttle_ = cmd_front_throttle_;
-    cmd_front_steer_ = clip(msg->front_steering, front_steer_limit_[0], front_steer_limit_[1]);
-    cmd_rear_steer_ = clip(msg->rear_steering, rear_steer_limit_[0], rear_steer_limit_[1]);
-    last_cmd_time_ = ros::Time::now();
+        clifford_commands_.cmd_rear_throttle_ = clifford_commands_.cmd_front_throttle_;
+    clifford_commands_.cmd_front_steer_ = clip(msg->front_steering,
+        servo_params_.front_steer_limit_[0],
+        servo_params_.front_steer_limit_[1]);
+    clifford_commands_.cmd_rear_steer_ = clip(msg->rear_steering,
+        servo_params_.rear_steer_limit_[0],
+        servo_params_.rear_steer_limit_[1]);
+    clifford_commands_.last_cmd_time_ = ros::Time::now();
 }
 
 void CliffordDriveNode::reconnectCallback(const ros::TimerEvent& event)
 {
-    // TODO: link VESC up here
+    // TODO: Check if VESC is connected - is there a function in the library you are using?
     // if (!drive_connected_)
     // {
     //     drive_connected_ = connectVESC();
@@ -156,42 +159,46 @@ void CliffordDriveNode::reconnectCallback(const ros::TimerEvent& event)
     }
 }
 
-// TODO: send command off to motor every ___ time.
+// TODO: send command off to motor every command_period_.
 void CliffordDriveNode::sendCommand(const ros::TimerEvent& event)
 {
     if (!steer_connected_)
     {
-        prev_front_throttle_ = 0;
-        prev_rear_throttle_ = 0;
+        clifford_commands_.prev_front_throttle_ = 0;
+        clifford_commands_.prev_rear_throttle_ = 0;
         return;
     }
 
-    ROS_DEBUG("Front cmd: %f", cmd_front_steer_);
-    ROS_DEBUG("Front steer scale: %d", front_steer_scale_);
-    ROS_DEBUG("Front steer value: %f", front_steer_scale_ * cmd_front_steer_ + rear_steer_trim_);
-    ROS_DEBUG("Setting front servo to %d", static_cast<int>(MAESTRO_CENTER_POSITION_ + front_steer_scale_ * cmd_front_steer_ + front_steer_trim_));
+    ROS_DEBUG("Front cmd: %f", clifford_commands_.cmd_front_steer_);
+    ROS_DEBUG("Front steer scale: %d", servo_params_.front_steer_scale_);
+    ROS_DEBUG("Front steer value: %f", servo_params_.front_steer_scale_ * clifford_commands_.cmd_front_steer_ + servo_params_.rear_steer_trim_);
+    ROS_DEBUG("Setting front servo to %d", static_cast<int>(MAESTRO_CENTER_POSITION_ \
+        + servo_params_.front_steer_scale_ * clifford_commands_.cmd_front_steer_ + servo_params_.front_steer_trim_));
 
-    ROS_DEBUG("Rear cmd: %f", cmd_rear_steer_);
-    ROS_DEBUG("Rear steer scale: %d", rear_steer_scale_);
-    ROS_DEBUG("Rear steer value: %f", rear_steer_scale_ * cmd_rear_steer_ + rear_steer_trim_);
-    ROS_DEBUG("Setting rear servo to %d", static_cast<int>(MAESTRO_CENTER_POSITION_ + rear_steer_scale_ * cmd_rear_steer_ + rear_steer_trim_));
+    ROS_DEBUG("Rear cmd: %f", clifford_commands_.cmd_rear_steer_);
+    ROS_DEBUG("Rear steer scale: %d", servo_params_.rear_steer_scale_);
+    ROS_DEBUG("Rear steer value: %f", servo_params_.rear_steer_scale_ * clifford_commands_.cmd_rear_steer_ + servo_params_.rear_steer_trim_);
+    ROS_DEBUG("Setting rear servo to %d", static_cast<int>(MAESTRO_CENTER_POSITION_ \
+        + servo_params_.rear_steer_scale_ * clifford_commands_.cmd_rear_steer_ + servo_params_.rear_steer_trim_));
 
-    servo_driver_->setTarget(front_steer_id_, static_cast<int>(MAESTRO_CENTER_POSITION_ + front_steer_scale_ * cmd_front_steer_ + front_steer_trim_));
-    servo_driver_->setTarget(rear_steer_id_, static_cast<int>(MAESTRO_CENTER_POSITION_ + rear_steer_scale_ * cmd_rear_steer_ + rear_steer_trim_));
+    servo_driver_->setTarget(servo_params_.front_steer_id_, static_cast<int>(MAESTRO_CENTER_POSITION_ \
+        + servo_params_.front_steer_scale_ * clifford_commands_.cmd_front_steer_ + servo_params_.front_steer_trim_));
+    servo_driver_->setTarget(servo_params_.rear_steer_id_, static_cast<int>(MAESTRO_CENTER_POSITION_ \
+        + servo_params_.rear_steer_scale_ * clifford_commands_.cmd_rear_steer_ + servo_params_.rear_steer_trim_));
 
-    prev_front_throttle_ = front_throttle_controller_.setThrottle(cmd_front_throttle_);
-    prev_rear_throttle_ = rear_throttle_controller_.setThrottle(cmd_rear_throttle_);
+    clifford_commands_.prev_front_throttle_ = front_throttle_controller_.setThrottle(clifford_commands_.cmd_front_throttle_);
+    clifford_commands_.prev_rear_throttle_ = rear_throttle_controller_.setThrottle(clifford_commands_.cmd_rear_throttle_);
     
     vesc_msgs::VescCommand msg_front;
     vesc_msgs::VescCommand msg_rear;
 
-    ROS_INFO("Front throttle: %f \tRear throttle: %f", prev_front_throttle_, prev_rear_throttle_);
-    msg_front.can_id = front_vesc_id_;
-    msg_front.command = prev_front_throttle_;
-    vesc_pub_.publish(msg_front);    
+    ROS_DEBUG("Front throttle: %f \tRear throttle: %f", clifford_commands_.prev_front_throttle_, clifford_commands_.prev_rear_throttle_);
+    msg_front.can_id = motor_params_.front_vesc_id_;
+    msg_front.command = clifford_commands_.prev_front_throttle_;
+    vesc_pub_.publish(msg_front);
 
-    msg_rear.can_id = rear_vesc_id_;
-    msg_rear.command = prev_rear_throttle_;
+    msg_rear.can_id = motor_params_.rear_vesc_id_;
+    msg_rear.command = clifford_commands_.prev_rear_throttle_;
     vesc_pub_.publish(msg_rear);
 }
 

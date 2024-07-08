@@ -55,48 +55,59 @@ private:
     ThrottleController front_throttle_controller_;
     ThrottleController rear_throttle_controller_;
     
+    struct MotorParams
+    {
+        std::string vesc_serial_port_;
+        int front_vesc_id_;
+        int rear_vesc_id_;
+        int comm_vesc_id_;
+        std::vector<float> front_throttle_limit_;
+        std::vector<float> rear_throttle_limit_;
+        std::vector<float> front_accel_limit_;
+        std::vector<float> rear_accel_limit_;    
+        float front_throttle_scale_;
+        float rear_throttle_scale_;
+        float e_ratio_;
+        float gear_ratio_;
+        int num_slots_;
+    };
+    struct ServoParams
+    {
+        std::string steer_serial_port_;
+        int front_steer_id_;
+        int rear_steer_id_;
+        int front_steer_scale_;
+        int rear_steer_scale_;
+        float front_steer_trim_;
+        float rear_steer_trim_;
+        std::vector<float> front_steer_limit_;
+        std::vector<float> rear_steer_limit_;
+    };
+    struct CliffordCommands
+    {
+        float prev_front_throttle_ = 0.0f;
+        float prev_rear_throttle_ = 0.0f;
+        float cmd_front_throttle_ = 0.0f;
+        float cmd_rear_throttle_ = 0.0f;
+        float cmd_front_steer_ = 0.0f;;
+        float cmd_rear_steer_ = 0.0f;
+        ros::Time last_cmd_time_;
+    };
 
-    // Motor variables
-    std::string vesc_serial_port_;
-    int front_vesc_id_;
-    int rear_vesc_id_;
-    std::vector<float> front_throttle_limit_;
-    std::vector<float> rear_throttle_limit_;
-    std::vector<float> front_accel_limit_;
-    std::vector<float> rear_accel_limit_;    
-    float front_throttle_scale_;
-    float rear_throttle_scale_;
-    int comm_vesc_id_;
-    float e_ratio_;
-
-    // Steering variables
-    std::string steer_serial_port_;
-    int front_steer_id_;
-    int rear_steer_id_;
-    int front_steer_scale_;
-    int rear_steer_scale_;
-    float front_steer_trim_;
-    float rear_steer_trim_;
-    std::vector<float> front_steer_limit_;
-    std::vector<float> rear_steer_limit_;
+    MotorParams motor_params_;
+    ServoParams servo_params_;
+    CliffordCommands clifford_commands_;
 
     // Status flags
     bool drive_connected_ = false;
     bool steer_connected_ = false;
 
     // Latest commands
-    float prev_front_throttle_ = 0.0f;
-    float prev_rear_throttle_ = 0.0f;
-    float cmd_front_throttle_ = 0.0f;
-    float cmd_rear_throttle_ = 0.0f;
-    float cmd_front_steer_ = 0.0f;;
-    float cmd_rear_steer_ = 0.0f;
+
 
     // Timers
     float command_period_;
     float reconnect_period_;
-
-    ros::Time last_cmd_time_;
 };
 
 #endif // CLIFFORD_DRIVE_NODE_H_
