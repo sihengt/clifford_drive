@@ -19,6 +19,7 @@ CliffordDriveNode::CliffordDriveNode()
     steer_connected_ = connectSteer();    
     command_sub_ = nh_.subscribe("/motor_controller/command", 1, &CliffordDriveNode::commandCallback, this);
     vesc_pub_ = nh_.advertise<vesc_msgs::VescCommand>("/commands/motor/speed", 1000);
+    status_pub_ = nh_.advertise<sensor_msgs::JointState>("/sensor_state", 1000);
     command_timer_ = nh_.createTimer(ros::Duration(command_period_), &CliffordDriveNode::sendCommand, this);
     reconnect_timer_ = nh_.createTimer(ros::Duration(reconnect_period_), &CliffordDriveNode::reconnectCallback, this);
     front_throttle_controller_.setParams(800.0f, motor_params_.front_throttle_scale_);

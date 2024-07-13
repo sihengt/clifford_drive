@@ -10,6 +10,7 @@ find_package(catkin REQUIRED COMPONENTS
     message_generation
     rospy
     vesc_msgs
+    sensor_msgs
 )
 
 add_subdirectory(CppMaestro)
@@ -29,7 +30,7 @@ generate_messages(
 
 catkin_package(
     INCLUDE_DIRS include
-    CATKIN_DEPENDS roscpp std_msgs message_runtime rospy vesc_msgs
+    CATKIN_DEPENDS roscpp std_msgs message_runtime rospy vesc_msgs sensor_msgs
 )
 
 ###########

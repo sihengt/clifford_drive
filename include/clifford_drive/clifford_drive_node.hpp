@@ -25,6 +25,7 @@ private:
     // Subscribers
     ros::Subscriber command_sub_;
     ros::Publisher  vesc_pub_;
+    ros::Publisher  status_pub_;
 
     // Timers
     ros::Timer command_timer_;
